@@ -1,9 +1,14 @@
 <template>
-  <div class="bg-white dark:bg-slate-800 shadow-xl rounded-lg p-8">
-    <h2 class="text-2xl font-bold text-center text-slate-900 dark:text-white mb-6">
-      {{ mode === 'login' ? 'Welcome Back!' : 'Create Your Account' }}
-    </h2>
-    <div v-if="error" class="mb-4 text-center text-sm text-red-500 bg-red-100 dark:bg-red-900/30 p-2 rounded">
+  <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl shadow-2xl rounded-2xl p-8 md:p-10 border border-white/20 dark:border-slate-700/50 animate-fade-in-up">
+    <div class="text-center mb-8">
+      <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+        <span class="text-4xl">{{ mode === 'login' ? '🔐' : '✨' }}</span>
+      </div>
+      <h2 class="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+        {{ mode === 'login' ? 'Welcome Back!' : 'Create Your Account' }}
+      </h2>
+    </div>
+    <div v-if="error" class="mb-6 text-center text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 p-4 rounded-xl border border-red-200 dark:border-red-800 animate-fade-in-up">
       {{ error }}
     </div>
     <form @submit.prevent="handleSubmit" class="space-y-6">
@@ -20,7 +25,7 @@
           name="username"
           type="text"
           required
-          class="mt-1 block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-slate-700"
+          class="mt-2 block w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-600 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-slate-700 transition-all hover:border-indigo-300 dark:hover:border-indigo-500"
         />
         <p v-if="getFieldError('username')" class="mt-1 text-xs text-red-500">
           {{ getFieldError('username') }}
@@ -41,7 +46,7 @@
           type="email"
           autocomplete="email"
           required
-          class="mt-1 block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-slate-700"
+          class="mt-2 block w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-600 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-slate-700 transition-all hover:border-indigo-300 dark:hover:border-indigo-500"
         />
         <p v-if="getFieldError('email')" class="mt-1 text-xs text-red-500">
           {{ getFieldError('email') }}
@@ -62,7 +67,7 @@
           type="password"
           :autocomplete="mode === 'login' ? 'current-password' : 'new-password'"
           required
-          class="mt-1 block w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm placeholder-slate-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-slate-700"
+          class="mt-2 block w-full px-4 py-3 border-2 border-slate-200 dark:border-slate-600 rounded-xl shadow-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white dark:bg-slate-700 transition-all hover:border-indigo-300 dark:hover:border-indigo-500"
         />
         <p v-if="getFieldError('password')" class="mt-1 text-xs text-red-500">
           {{ getFieldError('password') }}
@@ -73,9 +78,16 @@
         <button
           type="submit"
           :disabled="isLoading"
-          class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed dark:focus:ring-offset-slate-800"
+          class="w-full flex justify-center py-3 px-6 border border-transparent rounded-xl shadow-lg text-base font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed dark:focus:ring-offset-slate-800 transition-all transform hover:scale-[1.02] active:scale-[0.98] glow-indigo relative overflow-hidden"
         >
-          {{ isLoading ? 'Processing...' : mode === 'login' ? 'Sign In' : 'Sign Up' }}
+          <span v-if="isLoading" class="flex items-center gap-2">
+            <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Processing...
+          </span>
+          <span v-else>{{ mode === 'login' ? 'Sign In' : 'Sign Up' }}</span>
         </button>
       </div>
       <div class="text-sm text-center">
