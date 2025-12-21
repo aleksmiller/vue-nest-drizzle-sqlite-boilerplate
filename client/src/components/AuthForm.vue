@@ -118,7 +118,9 @@
 import { ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
-import type { RegisterData, LoginCredentials } from '../api/auth';
+import { loginCredentialsSchema, registerDataSchema } from '../api/schemas';
+import { parseAuthError } from '../api/auth';
+import { safeParse } from '../utils/validation';
 
 interface Props {
   mode: 'login' | 'register';
@@ -134,7 +136,7 @@ const username = ref('');
 const email = ref('');
 const password = ref('');
 const error = ref<string | null>(null);
-const fieldErrors = ref<Record<string, string[] | undefined> | null>(null);
+const fieldErrors = ref<Record<string, string[]> | null>(null);
 const isLoading = ref(false);
 
 const getFieldError = (field: string): string | undefined => {
@@ -148,21 +150,40 @@ const handleSubmit = async () => {
 
   try {
     if (props.mode === 'login') {
-      const credentials: LoginCredentials = { email: email.value, password: password.value };
-      await authStore.login(credentials);
+      // Validate client-side before submitting
+      const validation = safeParse(loginCredentialsSchema, {
+        email: email.value,
+        password: password.value,
+      });
+
+      if (!validation.success) {
+        fieldErrors.value = validation.errors;
+        error.value = 'Please fix the errors below.';
+        return;
+      }
+
+      await authStore.login(validation.data);
     } else {
-      const registerData: RegisterData = {
+      // Validate client-side before submitting
+      const validation = safeParse(registerDataSchema, {
         username: username.value,
         email: email.value,
         password: password.value,
-      };
-      await authStore.register(registerData);
+      });
+
+      if (!validation.success) {
+        fieldErrors.value = validation.errors;
+        error.value = 'Please fix the errors below.';
+        return;
+      }
+
+      await authStore.register(validation.data);
     }
     // Redirect to profile or return URL on success
     const redirect = (route.query.redirect as string) || '/profile';
     router.push(redirect);
   } catch (err: unknown) {
-    const apiError = err as { message?: string; details?: Record<string, string[]> };
+    const apiError = parseAuthError(err);
     error.value = apiError.message || `An error occurred during ${props.mode}.`;
     if (apiError.details) {
       fieldErrors.value = apiError.details;

@@ -9,6 +9,7 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<UserProfile | null>(null);
   const session = ref<{ id: string } | null>(null);
   const isAuthenticated = ref(false);
+  const isCheckingAuth = ref(false);
 
   // Getters
   const isLoggedIn = computed(() => isAuthenticated.value && user.value !== null);
@@ -18,7 +19,11 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authApi.register(data);
       // After successful registration, fetch user profile
-      await checkAuth();
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) {
+        // If checkAuth fails (e.g., 401), throw an error
+        throw new Error('Failed to authenticate after registration. Please try logging in.');
+      }
       return response;
     } catch (error) {
       throw error;
@@ -29,11 +34,25 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authApi.login(credentials);
       // After successful login, fetch user profile
-      await checkAuth();
+      const isAuthenticated = await checkAuth();
+      if (!isAuthenticated) {
+        // If checkAuth fails (e.g., 401), throw an error
+        throw new Error('Failed to authenticate after login. Please try again.');
+      }
       return response;
     } catch (error) {
       throw error;
     }
+  }
+
+  /**
+   * Clear authentication state without calling the API
+   * Useful for handling 401 errors or forced logouts
+   */
+  function clearAuth() {
+    user.value = null;
+    session.value = null;
+    isAuthenticated.value = false;
   }
 
   async function logout() {
@@ -44,13 +63,17 @@ export const useAuthStore = defineStore('auth', () => {
       console.error('Error during sign-out:', error);
     } finally {
       // Always clear state
-      user.value = null;
-      session.value = null;
-      isAuthenticated.value = false;
+      clearAuth();
     }
   }
 
   async function checkAuth() {
+    // Prevent multiple simultaneous auth checks
+    if (isCheckingAuth.value) {
+      return isAuthenticated.value;
+    }
+
+    isCheckingAuth.value = true;
     try {
       // Try to fetch user profile - if successful, user is authenticated
       const profile = await userApi.getProfile();
@@ -62,13 +85,13 @@ export const useAuthStore = defineStore('auth', () => {
       // If we get a 401, user is not authenticated
       const apiError = error as { status?: number };
       if (apiError.status === 401) {
-        user.value = null;
-        session.value = null;
-        isAuthenticated.value = false;
+        clearAuth();
         return false;
       }
       // For other errors, rethrow
       throw error;
+    } finally {
+      isCheckingAuth.value = false;
     }
   }
 
@@ -84,6 +107,7 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     checkAuth,
+    clearAuth,
   };
 });
 

@@ -1,13 +1,6 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
-import { useAuthStore } from './stores/auth';
-
-const authStore = useAuthStore();
-
-// Check authentication status on app mount
-onMounted(async () => {
-  await authStore.checkAuth();
-});
+// Router guards handle authentication checks
+// No need to check auth here - let the router handle it
 </script>
 
 <template>

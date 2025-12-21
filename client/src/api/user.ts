@@ -1,48 +1,26 @@
 import apiClient from './axios';
+import {
+  userProfileSchema,
+  profileUpdateDataSchema,
+  profileUpdateResponseSchema,
+  apiErrorSchema,
+  type UserProfile,
+  type ProfileUpdateData,
+  type ProfileUpdateResponse,
+  type ApiError,
+} from './schemas';
 
-export interface UserProfile {
-  id: string;
-  username: string;
-  email: string;
-  createdAt: Date | string;
-  profile: {
-    userId: string;
-    firstName: string | null;
-    lastName: string | null;
-    bio: string | null;
-    updatedAt: Date | string | null;
-  } | null;
-}
-
-export interface ProfileUpdateData {
-  firstName?: string | null;
-  lastName?: string | null;
-  bio?: string | null;
-}
-
-export interface ProfileUpdateResponse {
-  message: string;
-  profile: {
-    userId: string;
-    firstName: string | null;
-    lastName: string | null;
-    bio: string | null;
-    updatedAt: Date | string | null;
-  } | null;
-}
-
-export interface ApiError {
-  status: number | null;
-  message: string;
-  details?: Record<string, string[]> | null;
-}
+// Re-export types for convenience
+export type { UserProfile, ProfileUpdateData, ProfileUpdateResponse, ApiError };
 
 /**
  * Get the current user's profile
  */
 export async function getProfile(): Promise<UserProfile> {
-  const response = await apiClient.get<UserProfile>('/api/user/profile');
-  return response.data;
+  const response = await apiClient.get('/api/user/profile');
+
+  // Validate response
+  return userProfileSchema.parse(response.data);
 }
 
 /**
@@ -51,10 +29,35 @@ export async function getProfile(): Promise<UserProfile> {
 export async function updateProfile(
   data: ProfileUpdateData
 ): Promise<ProfileUpdateResponse> {
-  const response = await apiClient.put<ProfileUpdateResponse>(
-    '/api/user/profile',
-    data
-  );
-  return response.data;
+  // Validate input data
+  const validatedData = profileUpdateDataSchema.parse(data);
+
+  const response = await apiClient.put('/api/user/profile', validatedData);
+
+  // Validate response
+  return profileUpdateResponseSchema.parse(response.data);
+}
+
+/**
+ * Parse and validate an API error from the API
+ */
+export function parseApiError(error: unknown): ApiError {
+  if (typeof error === 'object' && error !== null) {
+    try {
+      return apiErrorSchema.parse(error);
+    } catch {
+      // If parsing fails, return a default error structure
+      return {
+        status: null,
+        message: 'An unexpected error occurred',
+        details: null,
+      };
+    }
+  }
+  return {
+    status: null,
+    message: String(error) || 'An unexpected error occurred',
+    details: null,
+  };
 }
 

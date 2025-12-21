@@ -99,17 +99,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import SignOutButton from '../components/SignOutButton.vue';
 
 const authStore = useAuthStore();
-
-// Check auth status on mount
-onMounted(async () => {
-  if (!authStore.isAuthenticated) {
-    await authStore.checkAuth();
-  }
-});
+// Auth state is managed by router guards and axios interceptor
+// No need to check auth here
 </script>
 

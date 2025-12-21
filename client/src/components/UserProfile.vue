@@ -172,7 +172,9 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { useUserStore } from '../stores/user';
-import type { ProfileUpdateData } from '../api/user';
+import { parseApiError, type ProfileUpdateData } from '../api/user';
+import { profileUpdateDataSchema } from '../api/schemas';
+import { safeParse } from '../utils/validation';
 
 const authStore = useAuthStore();
 const userStore = useUserStore();
@@ -236,21 +238,36 @@ const handleSubmit = async () => {
   isSubmitting.value = true;
 
   try {
-    // Filter out empty strings and convert to null
-    const updateData: ProfileUpdateData = {
-      firstName: formData.value.firstName?.trim() || null,
-      lastName: formData.value.lastName?.trim() || null,
-      bio: formData.value.bio?.trim() || null,
-    };
+    // Prepare update data - convert empty strings to null, keep undefined as undefined
+    const updateData: Record<string, string | null | undefined> = {};
 
-    await userStore.updateProfile(updateData);
+    if (formData.value.firstName !== undefined) {
+      updateData.firstName = formData.value.firstName?.trim() || null;
+    }
+    if (formData.value.lastName !== undefined) {
+      updateData.lastName = formData.value.lastName?.trim() || null;
+    }
+    if (formData.value.bio !== undefined) {
+      updateData.bio = formData.value.bio?.trim() || null;
+    }
+
+    // Validate client-side before submitting
+    const validation = safeParse(profileUpdateDataSchema, updateData);
+
+    if (!validation.success) {
+      fieldErrors.value = validation.errors;
+      serverError.value = 'Please fix the errors below.';
+      return;
+    }
+
+    await userStore.updateProfile(validation.data);
     successMessage.value = 'Profile updated successfully!';
     isEditing.value = false;
   } catch (error: unknown) {
-    const apiError = error as { message?: string; details?: Record<string, string[]> };
+    const apiError = parseApiError(error);
     serverError.value = apiError.message || 'Failed to update profile.';
     if (apiError.details) {
-      fieldErrors.value = apiError.details;
+      fieldErrors.value = apiError.details as Record<string, string[]>;
     }
   } finally {
     isSubmitting.value = false;
