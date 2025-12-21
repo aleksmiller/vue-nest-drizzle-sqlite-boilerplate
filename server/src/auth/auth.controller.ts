@@ -17,10 +17,19 @@ import { registerSchema, loginSchema } from '../../lib/validators';
 import { ZodError } from 'zod';
 import { lucia } from '../../lib/lucia';
 
+/**
+ * Controller handling authentication endpoints
+ */
 @Controller('api/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  /**
+   * Register a new user
+   * @param body - Registration data
+   * @param res - Express response object
+   * @returns Registration result with session cookie
+   */
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() body: unknown, @Res() res: Response) {
@@ -52,6 +61,12 @@ export class AuthController {
     }
   }
 
+  /**
+   * Login with email and password
+   * @param body - Login credentials
+   * @param res - Express response object
+   * @returns Login result with session cookie
+   */
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() body: unknown, @Res() res: Response) {
@@ -83,10 +98,15 @@ export class AuthController {
     }
   }
 
+  /**
+   * Sign out the current user
+   * @param req - Express request object
+   * @param res - Express response object
+   * @returns Sign out confirmation with cleared session cookie
+   */
   @Post('sign-out')
   @HttpCode(HttpStatus.OK)
   async signOut(@Req() req: Request, @Res() res: Response) {
-    // Get session ID from cookie (cookie-parser populates req.cookies)
     const sessionId =
       req.cookies?.[lucia.sessionCookieName] ||
       req.signedCookies?.[lucia.sessionCookieName] ||

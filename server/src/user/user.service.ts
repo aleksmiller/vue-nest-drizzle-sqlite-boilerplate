@@ -1,11 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { db } from '../../db/drizzle';
-import { userProfilesTable, usersTable, UserSchema } from '../../db/schema';
+import { userProfilesTable, usersTable } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { ProfileUpdateDto } from './dto/profile-update.dto';
 
 @Injectable()
 export class UserService {
+  /**
+   * Get user profile by user ID
+   * @param userId - The user ID
+   * @returns User profile with profile data or null
+   * @throws NotFoundException if user not found
+   */
   async getProfile(userId: string) {
     const userDetails = await db
       .select({
@@ -34,9 +40,15 @@ export class UserService {
     };
   }
 
+  /**
+   * Update user profile
+   * @param userId - The user ID
+   * @param profileUpdateDto - Profile update data
+   * @returns Updated profile data
+   */
   async updateProfile(userId: string, profileUpdateDto: ProfileUpdateDto) {
     const dataToUpdate: Partial<typeof userProfilesTable.$inferInsert> = {};
-    
+
     if (profileUpdateDto.firstName !== undefined) {
       dataToUpdate.firstName = profileUpdateDto.firstName;
     }

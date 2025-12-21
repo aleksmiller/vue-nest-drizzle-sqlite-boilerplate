@@ -9,6 +9,12 @@ import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
+  /**
+   * Register a new user
+   * @param registerDto - Registration data (username, email, password)
+   * @returns Registration result with userId and sessionId
+   * @throws ConflictException if username or email already exists
+   */
   async register(registerDto: RegisterDto) {
     const { username, email, password } = registerDto;
 
@@ -42,6 +48,12 @@ export class AuthService {
     };
   }
 
+  /**
+   * Login with email and password
+   * @param loginDto - Login credentials (email, password)
+   * @returns Login result with userId and sessionId
+   * @throws UnauthorizedException if credentials are invalid
+   */
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto;
 
@@ -71,6 +83,11 @@ export class AuthService {
     };
   }
 
+  /**
+   * Sign out a user by invalidating their session
+   * @param sessionId - The session ID to invalidate
+   * @returns Sign out confirmation message
+   */
   async signOut(sessionId: string) {
     await lucia.invalidateSession(sessionId);
     return {

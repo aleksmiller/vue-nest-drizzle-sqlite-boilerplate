@@ -15,16 +15,31 @@ import { ZodError } from 'zod';
 import { AuthGuard } from '../auth/auth.guard';
 import { User } from '../auth/decorators/user.decorator';
 
+/**
+ * Controller handling user profile endpoints
+ * All routes are protected with AuthGuard
+ */
 @Controller('api/user')
 @UseGuards(AuthGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  /**
+   * Get the current user's profile
+   * @param user - Authenticated user from @User() decorator
+   * @returns User profile data
+   */
   @Get('profile')
   async getProfile(@User() user: { id: string }) {
     return await this.userService.getProfile(user.id);
   }
 
+  /**
+   * Update the current user's profile
+   * @param body - Profile update data
+   * @param user - Authenticated user from @User() decorator
+   * @returns Updated profile data
+   */
   @Put('profile')
   @HttpCode(HttpStatus.OK)
   async updateProfile(@Body() body: unknown, @User() user: { id: string }) {
