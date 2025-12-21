@@ -1,5 +1,5 @@
-import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router';
-import { useAuthStore } from '../stores/auth';
+import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 
 /**
  * Route guard that redirects to login if user is not authenticated
@@ -8,23 +8,23 @@ import { useAuthStore } from '../stores/auth';
 export async function authGuard(
   to: RouteLocationNormalized,
   from: RouteLocationNormalized,
-  next: NavigationGuardNext
+  next: NavigationGuardNext,
 ) {
-  const authStore = useAuthStore();
+  const authStore = useAuthStore()
 
   if (!authStore.isAuthenticated) {
-    const isAuthenticated = await authStore.checkAuth();
+    const isAuthenticated = await authStore.checkAuth()
 
     if (!isAuthenticated) {
       next({
         path: '/login',
         query: { redirect: to.fullPath },
-      });
-      return;
+      })
+      return
     }
   }
 
-  next();
+  next()
 }
 
 /**
@@ -34,14 +34,14 @@ export async function authGuard(
 export async function guestGuard(
   to: RouteLocationNormalized,
   from: RouteLocationNormalized,
-  next: NavigationGuardNext
+  next: NavigationGuardNext,
 ) {
-  const authStore = useAuthStore();
+  const authStore = useAuthStore()
 
   // If user is already marked as authenticated, redirect to home
   if (authStore.isAuthenticated) {
-    next({ path: '/' });
-    return;
+    next({ path: '/' })
+    return
   }
 
   // Only check auth if we have a user but not authenticated flag
@@ -49,24 +49,23 @@ export async function guestGuard(
   // If user is null and isAuthenticated is false, we know they're not logged in
   if (authStore.user === null && !authStore.isAuthenticated) {
     // User is definitely not authenticated, allow access to guest pages
-    next();
-    return;
+    next()
+    return
   }
 
   // Only check auth if we're in an uncertain state
   // This should rarely happen, but handles edge cases
   try {
-    await authStore.checkAuth();
+    await authStore.checkAuth()
     // If checkAuth succeeds, redirect to home
     if (authStore.isAuthenticated) {
-      next({ path: '/' });
-      return;
+      next({ path: '/' })
+      return
     }
   } catch {
     // If checkAuth fails (e.g., 401), user is not authenticated
     // This is fine for guest pages - just continue
   }
 
-  next();
+  next()
 }
-

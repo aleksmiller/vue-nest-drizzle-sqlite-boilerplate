@@ -1,0 +1,9 @@
+{
+  "client/**/*.{ts,tsx,vue,js,jsx,json,css,scss,md}": [
+    "prettier --check --config client/.prettierrc.json"
+  ],
+  "server/**/*.{ts,js,json}": [
+    "prettier --check --config server/.prettierrc"
+  ]
+}
+

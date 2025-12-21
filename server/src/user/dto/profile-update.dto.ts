@@ -14,4 +14,3 @@ export class ProfileUpdateDto {
     return dto;
   }
 }
-

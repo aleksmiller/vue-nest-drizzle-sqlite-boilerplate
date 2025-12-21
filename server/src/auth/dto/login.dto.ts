@@ -12,4 +12,3 @@ export class LoginDto {
     return dto;
   }
 }
-

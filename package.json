@@ -12,9 +12,13 @@
     "start:server": "cd server && npm run start:prod",
     "lint:client": "cd client && npm run lint",
     "lint:server": "cd server && npm run lint",
-    "lint": "npm run lint:client && npm run lint:server"
+    "lint": "npm run lint:client && npm run lint:server",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.7.4"
   }
 }

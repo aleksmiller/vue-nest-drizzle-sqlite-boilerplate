@@ -1,22 +1,28 @@
 <template>
-  <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl shadow-2xl rounded-2xl p-8 md:p-10 border border-white/20 dark:border-slate-700/50 animate-fade-in-up">
+  <div
+    class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl shadow-2xl rounded-2xl p-8 md:p-10 border border-white/20 dark:border-slate-700/50 animate-fade-in-up"
+  >
     <div class="text-center mb-8">
-      <div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+      <div
+        class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg"
+      >
         <span class="text-4xl">{{ mode === 'login' ? '🔐' : '✨' }}</span>
       </div>
-      <h2 class="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+      <h2
+        class="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent"
+      >
         {{ mode === 'login' ? 'Welcome Back!' : 'Create Your Account' }}
       </h2>
     </div>
-    <div v-if="error" class="mb-6 text-center text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 p-4 rounded-xl border border-red-200 dark:border-red-800 animate-fade-in-up">
+    <div
+      v-if="error"
+      class="mb-6 text-center text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 p-4 rounded-xl border border-red-200 dark:border-red-800 animate-fade-in-up"
+    >
       {{ error }}
     </div>
     <form @submit.prevent="handleSubmit" class="space-y-6">
       <div v-if="mode === 'register'">
-        <label
-          for="username"
-          class="block text-sm font-medium text-slate-700 dark:text-slate-300"
-        >
+        <label for="username" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
           Username
         </label>
         <input
@@ -33,10 +39,7 @@
       </div>
 
       <div>
-        <label
-          for="email"
-          class="block text-sm font-medium text-slate-700 dark:text-slate-300"
-        >
+        <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
           Email address
         </label>
         <input
@@ -54,10 +57,7 @@
       </div>
 
       <div>
-        <label
-          for="password"
-          class="block text-sm font-medium text-slate-700 dark:text-slate-300"
-        >
+        <label for="password" class="block text-sm font-medium text-slate-700 dark:text-slate-300">
           Password
         </label>
         <input
@@ -81,9 +81,25 @@
           class="w-full flex justify-center py-3 px-6 border border-transparent rounded-xl shadow-lg text-base font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed dark:focus:ring-offset-slate-800 transition-all transform hover:scale-[1.02] active:scale-[0.98] glow-indigo relative overflow-hidden"
         >
           <span v-if="isLoading" class="flex items-center gap-2">
-            <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <svg
+              class="animate-spin h-5 w-5"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
             </svg>
             Processing...
           </span>
@@ -115,38 +131,38 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { useAuthStore } from '../stores/auth';
-import { loginCredentialsSchema, registerDataSchema } from '../api/schemas';
-import { parseAuthError } from '../api/auth';
-import { safeParse } from '../utils/validation';
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
+import { loginCredentialsSchema, registerDataSchema } from '../api/schemas'
+import { parseAuthError } from '../api/auth'
+import { safeParse } from '../utils/validation'
 
 interface Props {
-  mode: 'login' | 'register';
+  mode: 'login' | 'register'
 }
 
-const props = defineProps<Props>();
+const props = defineProps<Props>()
 
-const router = useRouter();
-const route = useRoute();
-const authStore = useAuthStore();
+const router = useRouter()
+const route = useRoute()
+const authStore = useAuthStore()
 
-const username = ref('');
-const email = ref('');
-const password = ref('');
-const error = ref<string | null>(null);
-const fieldErrors = ref<Record<string, string[]> | null>(null);
-const isLoading = ref(false);
+const username = ref('')
+const email = ref('')
+const password = ref('')
+const error = ref<string | null>(null)
+const fieldErrors = ref<Record<string, string[]> | null>(null)
+const isLoading = ref(false)
 
 const getFieldError = (field: string): string | undefined => {
-  return fieldErrors.value?.[field]?.[0];
-};
+  return fieldErrors.value?.[field]?.[0]
+}
 
 const handleSubmit = async () => {
-  isLoading.value = true;
-  error.value = null;
-  fieldErrors.value = null;
+  isLoading.value = true
+  error.value = null
+  fieldErrors.value = null
 
   try {
     if (props.mode === 'login') {
@@ -154,43 +170,42 @@ const handleSubmit = async () => {
       const validation = safeParse(loginCredentialsSchema, {
         email: email.value,
         password: password.value,
-      });
+      })
 
       if (!validation.success) {
-        fieldErrors.value = validation.errors;
-        error.value = 'Please fix the errors below.';
-        return;
+        fieldErrors.value = validation.errors
+        error.value = 'Please fix the errors below.'
+        return
       }
 
-      await authStore.login(validation.data);
+      await authStore.login(validation.data)
     } else {
       // Validate client-side before submitting
       const validation = safeParse(registerDataSchema, {
         username: username.value,
         email: email.value,
         password: password.value,
-      });
+      })
 
       if (!validation.success) {
-        fieldErrors.value = validation.errors;
-        error.value = 'Please fix the errors below.';
-        return;
+        fieldErrors.value = validation.errors
+        error.value = 'Please fix the errors below.'
+        return
       }
 
-      await authStore.register(validation.data);
+      await authStore.register(validation.data)
     }
     // Redirect to profile or return URL on success
-    const redirect = (route.query.redirect as string) || '/profile';
-    router.push(redirect);
+    const redirect = (route.query.redirect as string) || '/profile'
+    router.push(redirect)
   } catch (err: unknown) {
-    const apiError = parseAuthError(err);
-    error.value = apiError.message || `An error occurred during ${props.mode}.`;
+    const apiError = parseAuthError(err)
+    error.value = apiError.message || `An error occurred during ${props.mode}.`
     if (apiError.details) {
-      fieldErrors.value = apiError.details;
+      fieldErrors.value = apiError.details
     }
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
-};
+}
 </script>
-

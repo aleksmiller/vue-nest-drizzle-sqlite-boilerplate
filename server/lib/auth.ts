@@ -1,5 +1,5 @@
-import { Argon2id } from "oslo/password";
-import { generateId } from "lucia"; // Lucia's own ID generator
+import { Argon2id } from 'oslo/password';
+import { generateId } from 'lucia'; // Lucia's own ID generator
 
 const ID_LENGTH = 15; // Standard length for Lucia IDs
 const argon2id = new Argon2id();
@@ -15,7 +15,7 @@ export const hashPassword = async (password: string): Promise<string> => {
 
 export const verifyPassword = async (
   hashedPassword: string,
-  plainTextPassword: string
+  plainTextPassword: string,
 ): Promise<boolean> => {
   return await argon2id.verify(hashedPassword, plainTextPassword);
 };

@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
 import { db } from '../../db/drizzle';
 import { usersTable } from '../../db/schema';
 import { hashPassword, generateUserId, verifyPassword } from '../../lib/auth';
@@ -95,4 +99,3 @@ export class AuthService {
     };
   }
 }
-
