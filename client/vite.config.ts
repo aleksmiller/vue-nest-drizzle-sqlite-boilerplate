@@ -39,7 +39,7 @@ export default defineConfig({
         drop_console: process.env.NODE_ENV === 'production',
         drop_debugger: true,
       },
-    },
+    } as Record<string, unknown>,
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
