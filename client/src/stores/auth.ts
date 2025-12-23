@@ -3,7 +3,6 @@ import { defineStore } from 'pinia'
 import { useQuery, useMutation } from '@pinia/colada'
 import * as authApi from '../api/auth'
 import * as userApi from '../api/user'
-import type { UserProfile } from '../api/user'
 
 export const useAuthStore = defineStore('auth', () => {
   // Use Pinia Colada query for checking authentication
