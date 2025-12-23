@@ -18,6 +18,7 @@
     "format:check": "prettier --check --experimental-cli \"src/**/*.{ts,tsx,vue,js,jsx,json,css,scss,md}\""
   },
   "dependencies": {
+    "@pinia/colada": "^0.19.1",
     "@vueuse/core": "^14.1.0",
     "axios": "^1.13.2",
     "pinia": "^3.0.4",
