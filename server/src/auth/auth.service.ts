@@ -30,18 +30,35 @@ export class AuthService {
       .limit(1);
 
     if (existingUser.length > 0) {
+      // Note: this confirms an account exists (user enumeration). A combined
+      // username/email message avoids revealing which field matched, and the
+      // endpoint is rate-limited (see @Throttle on the controller). Eliminating
+      // enumeration entirely would require an email-verification signup flow.
       throw new ConflictException('Username or email already taken');
     }
 
     const hashedPassword = await hashPassword(password);
     const userId = generateUserId();
 
-    await db.insert(usersTable).values({
-      id: userId,
-      username,
-      email,
-      hashedPassword,
-    });
+    try {
+      await db.insert(usersTable).values({
+        id: userId,
+        username,
+        email,
+        hashedPassword,
+      });
+    } catch (error) {
+      // Backstop for the check-then-insert race: a concurrent request may have
+      // inserted the same username/email between the check above and this insert,
+      // tripping the unique constraint.
+      if (
+        error instanceof Error &&
+        error.message.includes('UNIQUE constraint failed')
+      ) {
+        throw new ConflictException('Username or email already taken');
+      }
+      throw error;
+    }
 
     const session = await lucia.createSession(userId, {});
 

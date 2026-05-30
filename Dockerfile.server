@@ -1,55 +1,56 @@
-# Build stage
+# Build stage — compile TypeScript with full (dev) dependencies
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install build dependencies for better-sqlite3
+# Build dependencies for better-sqlite3's native addon
 RUN apk add --no-cache python3 make g++
 
-# Copy package files
 COPY server/package*.json ./
 RUN npm ci
 
-# Copy source code and configuration
 COPY server/ ./
-
-# Build the application
 RUN npm run build
 
-# Production stage
+# Dependencies stage — install only production deps and compile native modules
+FROM node:20-alpine AS deps
+
+WORKDIR /app
+
+RUN apk add --no-cache python3 make g++
+
+COPY server/package*.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+
+# Production stage — no compilers, runs as non-root
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Install runtime dependencies for better-sqlite3
-RUN apk add --no-cache python3 make g++
+# Compiled production node_modules (native addon already built in the deps stage)
+COPY --from=deps --chown=node:node /app/node_modules ./node_modules
 
-# Copy package files
-COPY server/package*.json ./
+# Built application and runtime files
+COPY --from=builder --chown=node:node /app/dist ./dist
+COPY --from=builder --chown=node:node /app/db ./db
+COPY --from=builder --chown=node:node /app/lib ./lib
+COPY --from=builder --chown=node:node /app/drizzle.config.ts ./
+COPY --chown=node:node server/package*.json ./
 
-# Install only production dependencies
-RUN npm ci --only=production && \
-    npm cache clean --force
-
-# Copy built application from builder stage
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/db ./db
-COPY --from=builder /app/lib ./lib
-COPY --from=builder /app/drizzle.config.ts ./
-
-# Copy startup script
-COPY server/docker-entrypoint.sh ./docker-entrypoint.sh
+# Startup script
+COPY --chown=node:node server/docker-entrypoint.sh ./docker-entrypoint.sh
 RUN chmod +x ./docker-entrypoint.sh
 
-# Create directory for database
-RUN mkdir -p /app/db/data
+# Database directory, owned by the non-root user
+RUN mkdir -p /app/db/data && chown -R node:node /app/db/data
 
-# Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Expose port
 EXPOSE 3000
+
+# Drop root privileges
+USER node
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
@@ -57,4 +58,3 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Start the application using entrypoint script
 ENTRYPOINT ["./docker-entrypoint.sh"]
-

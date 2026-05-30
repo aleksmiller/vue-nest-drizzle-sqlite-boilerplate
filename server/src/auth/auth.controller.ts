@@ -9,6 +9,7 @@ import {
   BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
@@ -31,6 +32,7 @@ export class AuthController {
    * @returns Registration result with session cookie
    */
   @Post('register')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.CREATED)
   async register(@Body() body: unknown, @Res() res: Response) {
     try {
@@ -68,6 +70,7 @@ export class AuthController {
    * @returns Login result with session cookie
    */
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   async login(@Body() body: unknown, @Res() res: Response) {
     try {
