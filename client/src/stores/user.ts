@@ -1,49 +1,66 @@
-import { computed } from 'vue'
+import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import { useQuery, useMutation } from '@pinia/colada'
-import * as userApi from '../api/user'
-import type { ProfileUpdateData } from '../api/user'
+import { useApi } from '../api/http'
+import { useAuthStore } from './auth'
+import {
+  userProfileSchema,
+  profileUpdateResponseSchema,
+  type UserProfile,
+  type ProfileUpdateData,
+  type ProfileUpdateResponse,
+} from '../api/schemas'
 
 export const useUserStore = defineStore('user', () => {
-  // Use Pinia Colada query for fetching user profile
-  // This automatically handles caching, deduplication, and loading states
-  const profileQuery = useQuery({
-    key: ['user', 'profile'],
-    query: userApi.getProfile,
-    // Don't auto-fetch if user is not authenticated
-    enabled: false,
-  })
+  const profile = ref<UserProfile | null>(null)
 
-  // Computed state derived from the query
-  const profile = computed(() => profileQuery.data.value ?? null)
+  /** Fetch the current user's profile and cache it. Returns null on 401. */
+  async function fetchProfile(): Promise<UserProfile | null> {
+    const { data, error, statusCode, execute } = useApi('/api/user/profile', {
+      immediate: false,
+    }).json<unknown>()
+    await execute()
 
-  // Update profile mutation
-  const updateProfileMutation = useMutation({
-    mutation: userApi.updateProfile,
-    onSuccess: async () => {
-      // Refresh profile after successful update
-      await profileQuery.refetch()
-    },
-  })
-
-  // Wrapper functions for backward compatibility
-  async function fetchProfile() {
-    await profileQuery.refetch()
+    if (statusCode.value === 401) {
+      profile.value = null
+      return null
+    }
+    if (error.value) {
+      throw error.value
+    }
+    profile.value = userProfileSchema.parse(data.value)
     return profile.value
   }
 
-  async function updateProfile(data: ProfileUpdateData) {
-    return updateProfileMutation.mutate(data)
+  /** Update the profile, then refresh the canonical auth user so views update. */
+  async function updateProfile(payload: ProfileUpdateData): Promise<ProfileUpdateResponse> {
+    const { data, error, statusCode, execute } = useApi('/api/user/profile', {
+      immediate: false,
+    })
+      .put(payload)
+      .json<unknown>()
+    await execute()
+
+    if (error.value || (statusCode.value ?? 0) >= 400) {
+      const body = (data.value ?? {}) as {
+        message?: string
+        error?: string
+        details?: Record<string, string[]>
+      }
+      throw {
+        status: statusCode.value ?? null,
+        message: body.message || body.error || 'An error occurred',
+        details: body.details || null,
+      }
+    }
+
+    const parsed = profileUpdateResponseSchema.parse(data.value)
+    await useAuthStore().checkAuth()
+    return parsed
   }
 
   return {
-    // State (computed from query)
     profile,
-    // Actions
     fetchProfile,
     updateProfile,
-    // Expose query and mutation for advanced usage (e.g., accessing loading/error states)
-    profileQuery,
-    updateProfileMutation,
   }
 })

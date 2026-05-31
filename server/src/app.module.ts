@@ -4,15 +4,16 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
+import { validateEnv } from './config/env.validation';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true, // Make config available globally
       envFilePath: '.env', // Load .env file from server directory
+      validate: validateEnv, // Fail fast on missing/invalid env vars
     }),
     // Global rate limiting: 100 requests / minute per IP by default.
     // Stricter per-route limits are applied via @Throttle() (e.g. on auth endpoints).
@@ -22,7 +23,6 @@ import { UserModule } from './user/user.module';
         limit: 100,
       },
     ]),
-    DatabaseModule,
     AuthModule,
     UserModule,
   ],

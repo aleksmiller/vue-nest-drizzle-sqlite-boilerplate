@@ -8,8 +8,7 @@ import { usersTable } from '../../db/schema';
 import { hashPassword, generateUserId, verifyPassword } from '../../lib/auth';
 import { lucia } from '../../lib/lucia';
 import { eq, or } from 'drizzle-orm';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
+import type { RegisterInput, LoginInput } from '../../lib/validators';
 
 @Injectable()
 export class AuthService {
@@ -19,8 +18,8 @@ export class AuthService {
    * @returns Registration result with userId and sessionId
    * @throws ConflictException if username or email already exists
    */
-  async register(registerDto: RegisterDto) {
-    const { username, email, password } = registerDto;
+  async register(registerInput: RegisterInput) {
+    const { username, email, password } = registerInput;
 
     // Check if username or email already exists
     const existingUser = await db
@@ -75,8 +74,8 @@ export class AuthService {
    * @returns Login result with userId and sessionId
    * @throws UnauthorizedException if credentials are invalid
    */
-  async login(loginDto: LoginDto) {
-    const { email, password } = loginDto;
+  async login(loginInput: LoginInput) {
+    const { email, password } = loginInput;
 
     const existingUsers = await db
       .select()

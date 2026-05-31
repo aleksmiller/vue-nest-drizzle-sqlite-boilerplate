@@ -12,7 +12,6 @@ jest.mock('../lib/auth', () => ({
 }));
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
 import { AuthGuard } from '../auth/auth.guard';
@@ -109,18 +108,6 @@ describe('UserController', () => {
         }),
       );
       expect(result).toEqual(mockUpdatedProfile);
-    });
-
-    it('should throw BadRequestException for invalid input', async () => {
-      const userId = 'user-id-123';
-      const invalidData = {
-        firstName: 123, // Invalid: should be string or null
-        bio: {}, // Invalid: should be string or null
-      };
-
-      await expect(
-        controller.updateProfile(invalidData, { id: userId }),
-      ).rejects.toThrow(BadRequestException);
     });
 
     it('should handle partial updates', async () => {

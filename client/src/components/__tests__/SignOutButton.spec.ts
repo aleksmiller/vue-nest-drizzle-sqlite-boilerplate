@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { PiniaColada } from '@pinia/colada'
 import { createRouter, createWebHistory } from 'vue-router'
 import SignOutButton from '../SignOutButton.vue'
 import { useAuthStore } from '../../stores/auth'
@@ -24,7 +23,6 @@ describe('SignOutButton', () => {
 
   beforeEach(async () => {
     const pinia = createPinia()
-    pinia.use(PiniaColada)
     setActivePinia(pinia)
 
     mockAuthStore = {

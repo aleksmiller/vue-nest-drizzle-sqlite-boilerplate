@@ -1,16 +1,18 @@
-name: Tests
+name: CI
 
 on:
   push:
-    branches: [develop]
+    branches: [main]
   pull_request:
-    branches: [develop]
+    branches: [main]
 
 jobs:
-  backend-tests:
-    name: Backend Tests
+  backend:
+    name: Backend (lint, test, build)
     runs-on: ubuntu-latest
-    
+    defaults:
+      run:
+        working-directory: ./server
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,20 +24,26 @@ jobs:
           cache: 'npm'
           cache-dependency-path: server/package-lock.json
 
-      - name: Install backend dependencies
-        working-directory: ./server
+      - name: Install dependencies
         run: npm ci
 
-      - name: Run backend tests
-        working-directory: ./server
+      - name: Lint
+        run: npx eslint "{src,test}/**/*.ts"
+
+      - name: Test
         env:
           DATABASE_PATH: /tmp/test-db.sqlite
         run: npm test
 
-  frontend-tests:
-    name: Frontend Tests
+      - name: Build
+        run: npm run build
+
+  frontend:
+    name: Frontend (lint, type-check, test, build)
     runs-on: ubuntu-latest
-    
+    defaults:
+      run:
+        working-directory: ./client
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -47,11 +55,17 @@ jobs:
           cache: 'npm'
           cache-dependency-path: client/package-lock.json
 
-      - name: Install frontend dependencies
-        working-directory: ./client
+      - name: Install dependencies
         run: npm ci
 
-      - name: Run frontend tests
-        working-directory: ./client
-        run: npm run test:unit
+      - name: Lint
+        run: npx eslint .
 
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Test
+        run: npm run test:unit -- --run
+
+      - name: Build
+        run: npm run build-only

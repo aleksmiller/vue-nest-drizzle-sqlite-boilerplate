@@ -1,12 +1,10 @@
 import { createPinia, setActivePinia } from 'pinia'
-import { PiniaColada } from '@pinia/colada'
 
 /**
- * Setup Pinia with Pinia Colada for testing
+ * Setup Pinia for testing
  */
 export function setupPinia() {
   const pinia = createPinia()
-  pinia.use(PiniaColada)
   setActivePinia(pinia)
   return pinia
 }
@@ -16,6 +14,5 @@ export function setupPinia() {
  */
 export function resetPinia() {
   const pinia = createPinia()
-  pinia.use(PiniaColada)
   setActivePinia(pinia)
 }

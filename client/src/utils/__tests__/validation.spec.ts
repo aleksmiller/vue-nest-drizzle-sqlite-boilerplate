@@ -18,7 +18,8 @@ describe('validation utilities', () => {
       })
 
       expect(result.success).toBe(false)
-      const formatted = formatZodErrors(result.success ? result.data : result.error)
+      if (result.success) return
+      const formatted = formatZodErrors(result.error)
 
       expect(formatted).toHaveProperty('username')
       expect(formatted).toHaveProperty('email')
@@ -42,7 +43,8 @@ describe('validation utilities', () => {
       })
 
       expect(result.success).toBe(false)
-      const formatted = formatZodErrors(result.success ? result.data : result.error)
+      if (result.success) return
+      const formatted = formatZodErrors(result.error)
       expect(formatted).toHaveProperty('user.name')
       expect(formatted['user.name']).toContain('Name is required')
     })
@@ -60,8 +62,9 @@ describe('validation utilities', () => {
       })
 
       expect(result.success).toBe(false)
-      const formatted = formatZodErrors(result.success ? result.data : result.error)
-      expect(formatted.password.length).toBeGreaterThan(1)
+      if (result.success) return
+      const formatted = formatZodErrors(result.error)
+      expect(formatted.password?.length ?? 0).toBeGreaterThan(1)
     })
   })
 

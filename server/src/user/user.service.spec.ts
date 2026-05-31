@@ -12,7 +12,6 @@ jest.mock('../db/drizzle', () => ({
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { UserService } from './user.service';
-import { ProfileUpdateDto } from './dto/profile-update.dto';
 import { createTestDb, cleanupTestDb } from '../test-utils/test-db';
 import { Database } from 'better-sqlite3';
 // @ts-expect-error - Path resolution works at runtime via Jest moduleNameMapper
@@ -119,10 +118,11 @@ describe('UserService', () => {
         createdAt: new Date(),
       });
 
-      const updateDto = new ProfileUpdateDto();
-      updateDto.firstName = 'Jane';
-      updateDto.lastName = 'Smith';
-      updateDto.bio = 'New bio';
+      const updateDto = {
+        firstName: 'Jane',
+        lastName: 'Smith',
+        bio: 'New bio',
+      };
 
       const result = await service.updateProfile(userId, updateDto);
 
@@ -153,9 +153,10 @@ describe('UserService', () => {
         bio: 'Old bio',
       });
 
-      const updateDto = new ProfileUpdateDto();
-      updateDto.firstName = 'Jane';
-      updateDto.bio = 'Updated bio';
+      const updateDto = {
+        firstName: 'Jane',
+        bio: 'Updated bio',
+      };
 
       const result = await service.updateProfile(userId, updateDto);
 
@@ -185,9 +186,10 @@ describe('UserService', () => {
         bio: 'Original bio',
       });
 
-      const updateDto = new ProfileUpdateDto();
-      updateDto.firstName = 'Jane';
-      // lastName and bio not provided
+      const updateDto = {
+        firstName: 'Jane',
+        // lastName and bio not provided
+      };
 
       const result = await service.updateProfile(userId, updateDto);
 
@@ -216,7 +218,7 @@ describe('UserService', () => {
         bio: 'Original bio',
       });
 
-      const updateDto = new ProfileUpdateDto();
+      const updateDto = {};
       // No fields provided
 
       const result = await service.updateProfile(userId, updateDto);
@@ -245,9 +247,10 @@ describe('UserService', () => {
         bio: 'Original bio',
       });
 
-      const updateDto = new ProfileUpdateDto();
-      updateDto.firstName = null;
-      updateDto.bio = null;
+      const updateDto = {
+        firstName: null,
+        bio: null,
+      };
 
       const result = await service.updateProfile(userId, updateDto);
 

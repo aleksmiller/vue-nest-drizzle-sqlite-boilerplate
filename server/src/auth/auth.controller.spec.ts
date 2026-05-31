@@ -22,7 +22,7 @@ jest.mock('../lib/auth', () => ({
 }));
 
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { Response, Request } from 'express';
@@ -101,18 +101,6 @@ describe('AuthController', () => {
       });
     });
 
-    it('should throw BadRequestException for invalid input', async () => {
-      const invalidData = {
-        username: '', // Invalid: empty
-        email: 'not-an-email',
-        password: '123', // Invalid: too short
-      };
-
-      await expect(
-        controller.register(invalidData, mockResponse as Response),
-      ).rejects.toThrow(BadRequestException);
-    });
-
     it('should handle service errors', async () => {
       const registerData = {
         username: 'testuser',
@@ -162,17 +150,6 @@ describe('AuthController', () => {
         message: serviceResult.message,
         userId: serviceResult.userId,
       });
-    });
-
-    it('should throw BadRequestException for invalid input', async () => {
-      const invalidData = {
-        email: 'not-an-email',
-        password: '',
-      };
-
-      await expect(
-        controller.login(invalidData, mockResponse as Response),
-      ).rejects.toThrow(BadRequestException);
     });
   });
 

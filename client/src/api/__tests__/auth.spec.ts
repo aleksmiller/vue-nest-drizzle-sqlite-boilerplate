@@ -1,105 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { register, login, signOut, parseAuthError } from '../auth'
-import apiClient from '../axios'
+import { describe, it, expect } from 'vitest'
+import { parseAuthError } from '../auth'
 import { ZodError } from 'zod'
 
-// Mock axios client
-vi.mock('../axios', () => ({
-  default: {
-    post: vi.fn(),
-  },
-}))
-
 describe('auth API', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-  describe('register', () => {
-    it('should register user successfully', async () => {
-      const registerData = {
-        username: 'testuser',
-        email: 'test@example.com',
-        password: 'password123',
-      }
-
-      const mockResponse = {
-        data: {
-          message: 'User registered successfully',
-          userId: 'user-123',
-        },
-      }
-
-      vi.mocked(apiClient.post).mockResolvedValue(mockResponse)
-
-      const result = await register(registerData)
-
-      expect(result).toEqual(mockResponse.data)
-      expect(apiClient.post).toHaveBeenCalledWith('/api/auth/register', registerData)
-    })
-
-    it('should throw error for invalid data', async () => {
-      const invalidData = {
-        username: '',
-        email: 'invalid-email',
-        password: '12',
-      }
-
-      await expect(
-        register(invalidData as { username: string; email: string; password: string }),
-      ).rejects.toThrow()
-    })
-  })
-
-  describe('login', () => {
-    it('should login successfully', async () => {
-      const loginData = {
-        email: 'test@example.com',
-        password: 'password123',
-      }
-
-      const mockResponse = {
-        data: {
-          message: 'Logged in successfully',
-          userId: 'user-123',
-        },
-      }
-
-      vi.mocked(apiClient.post).mockResolvedValue(mockResponse)
-
-      const result = await login(loginData)
-
-      expect(result).toEqual(mockResponse.data)
-      expect(apiClient.post).toHaveBeenCalledWith('/api/auth/login', loginData)
-    })
-
-    it('should throw error for invalid credentials format', async () => {
-      const invalidData = {
-        email: 'invalid-email',
-        password: '',
-      }
-
-      await expect(login(invalidData as { email: string; password: string })).rejects.toThrow()
-    })
-  })
-
-  describe('signOut', () => {
-    it('should sign out successfully', async () => {
-      const mockResponse = {
-        data: {
-          message: 'Signed out successfully',
-        },
-      }
-
-      vi.mocked(apiClient.post).mockResolvedValue(mockResponse)
-
-      const result = await signOut()
-
-      expect(result).toEqual(mockResponse.data)
-      expect(apiClient.post).toHaveBeenCalledWith('/api/auth/sign-out')
-    })
-  })
-
   describe('parseAuthError', () => {
     it('should parse error with status and message', () => {
       const error = {
@@ -177,7 +80,6 @@ describe('auth API', () => {
         {
           code: 'invalid_type',
           expected: 'string',
-          received: 'number',
           path: ['email'],
           message: 'Expected string',
         },

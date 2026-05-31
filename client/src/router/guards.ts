@@ -2,69 +2,51 @@ import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
 /**
- * Route guard that redirects to login if user is not authenticated
- * Preserves the intended destination in query params for redirect after login
+ * Ensure the auth state has been resolved with the server at least once.
+ * Subsequent navigations reuse the cached result instead of re-fetching.
+ */
+async function ensureAuthChecked() {
+  const authStore = useAuthStore()
+  if (!authStore.isAuthenticated && !authStore.initialized) {
+    // A failed check (e.g. 401) simply leaves the user unauthenticated.
+    await authStore.checkAuth().catch(() => false)
+  }
+  return authStore
+}
+
+/**
+ * Route guard for protected routes: redirects to login (preserving the
+ * intended destination) when the user is not authenticated.
  */
 export async function authGuard(
   to: RouteLocationNormalized,
-  from: RouteLocationNormalized,
+  _from: RouteLocationNormalized,
   next: NavigationGuardNext,
 ) {
-  const authStore = useAuthStore()
+  const authStore = await ensureAuthChecked()
 
   if (!authStore.isAuthenticated) {
-    const isAuthenticated = await authStore.checkAuth()
-
-    if (!isAuthenticated) {
-      next({
-        path: '/login',
-        query: { redirect: to.fullPath },
-      })
-      return
-    }
+    next({ path: '/login', query: { redirect: to.fullPath } })
+    return
   }
 
   next()
 }
 
 /**
- * Route guard that redirects to home if user is already authenticated
- * Prevents logged-in users from accessing login/register pages
+ * Route guard for guest-only routes (login/register): redirects authenticated
+ * users to the home page.
  */
 export async function guestGuard(
-  to: RouteLocationNormalized,
-  from: RouteLocationNormalized,
+  _to: RouteLocationNormalized,
+  _from: RouteLocationNormalized,
   next: NavigationGuardNext,
 ) {
-  const authStore = useAuthStore()
+  const authStore = await ensureAuthChecked()
 
-  // If user is already marked as authenticated, redirect to home
   if (authStore.isAuthenticated) {
     next({ path: '/' })
     return
-  }
-
-  // Only check auth if we have a user but not authenticated flag
-  // This prevents unnecessary API calls for unauthenticated users
-  // If user is null and isAuthenticated is false, we know they're not logged in
-  if (authStore.user === null && !authStore.isAuthenticated) {
-    // User is definitely not authenticated, allow access to guest pages
-    next()
-    return
-  }
-
-  // Only check auth if we're in an uncertain state
-  // This should rarely happen, but handles edge cases
-  try {
-    await authStore.checkAuth()
-    // If checkAuth succeeds, redirect to home
-    if (authStore.isAuthenticated) {
-      next({ path: '/' })
-      return
-    }
-  } catch {
-    // If checkAuth fails (e.g., 401), user is not authenticated
-    // This is fine for guest pages - just continue
   }
 
   next()

@@ -26,8 +26,6 @@ jest.mock('../db/drizzle', () => ({
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
 import { createTestDb, cleanupTestDb } from '../test-utils/test-db';
 import { Database } from 'better-sqlite3';
 // @ts-expect-error - Path resolution works at runtime via Jest moduleNameMapper
@@ -65,10 +63,11 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('should register a new user successfully', async () => {
-      const registerDto = new RegisterDto();
-      registerDto.username = 'testuser';
-      registerDto.email = 'test@example.com';
-      registerDto.password = 'password123';
+      const registerDto = {
+        username: 'testuser',
+        email: 'test@example.com',
+        password: 'password123',
+      };
 
       const mockSession = { id: 'session-id-123' };
       mockCreateSession.mockResolvedValue(mockSession);
@@ -97,10 +96,11 @@ describe('AuthService', () => {
         hashedPassword,
       });
 
-      const registerDto = new RegisterDto();
-      registerDto.username = 'existinguser';
-      registerDto.email = 'new@example.com';
-      registerDto.password = 'password123';
+      const registerDto = {
+        username: 'existinguser',
+        email: 'new@example.com',
+        password: 'password123',
+      };
 
       await expect(service.register(registerDto)).rejects.toThrow(
         ConflictException,
@@ -120,10 +120,11 @@ describe('AuthService', () => {
         hashedPassword,
       });
 
-      const registerDto = new RegisterDto();
-      registerDto.username = 'newuser';
-      registerDto.email = 'existing@example.com';
-      registerDto.password = 'password123';
+      const registerDto = {
+        username: 'newuser',
+        email: 'existing@example.com',
+        password: 'password123',
+      };
 
       await expect(service.register(registerDto)).rejects.toThrow(
         ConflictException,
@@ -134,10 +135,11 @@ describe('AuthService', () => {
     });
 
     it('should hash password before storing', async () => {
-      const registerDto = new RegisterDto();
-      registerDto.username = 'testuser';
-      registerDto.email = 'test@example.com';
-      registerDto.password = 'password123';
+      const registerDto = {
+        username: 'testuser',
+        email: 'test@example.com',
+        password: 'password123',
+      };
 
       const mockSession = { id: 'session-id-123' };
       mockCreateSession.mockResolvedValue(mockSession);
@@ -162,9 +164,10 @@ describe('AuthService', () => {
         hashedPassword,
       });
 
-      const loginDto = new LoginDto();
-      loginDto.email = 'test@example.com';
-      loginDto.password = 'password123';
+      const loginDto = {
+        email: 'test@example.com',
+        password: 'password123',
+      };
 
       const mockSession = { id: 'session-id-123' };
       mockCreateSession.mockResolvedValue(mockSession);
@@ -178,9 +181,10 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException if email does not exist', async () => {
-      const loginDto = new LoginDto();
-      loginDto.email = 'nonexistent@example.com';
-      loginDto.password = 'password123';
+      const loginDto = {
+        email: 'nonexistent@example.com',
+        password: 'password123',
+      };
 
       await expect(service.login(loginDto)).rejects.toThrow(
         UnauthorizedException,
@@ -200,9 +204,10 @@ describe('AuthService', () => {
         hashedPassword,
       });
 
-      const loginDto = new LoginDto();
-      loginDto.email = 'test@example.com';
-      loginDto.password = 'wrongpassword';
+      const loginDto = {
+        email: 'test@example.com',
+        password: 'wrongpassword',
+      };
 
       await expect(service.login(loginDto)).rejects.toThrow(
         UnauthorizedException,

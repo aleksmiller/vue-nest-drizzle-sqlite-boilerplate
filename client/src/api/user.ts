@@ -1,8 +1,4 @@
-import apiClient from './axios'
 import {
-  userProfileSchema,
-  profileUpdateDataSchema,
-  profileUpdateResponseSchema,
   apiErrorSchema,
   type UserProfile,
   type ProfileUpdateData,
@@ -14,41 +10,17 @@ import {
 export type { UserProfile, ProfileUpdateData, ProfileUpdateResponse, ApiError }
 
 /**
- * Get the current user's profile
- */
-export async function getProfile(): Promise<UserProfile> {
-  const response = await apiClient.get('/api/user/profile')
-
-  // Validate response
-  return userProfileSchema.parse(response.data)
-}
-
-/**
- * Update the current user's profile
- */
-export async function updateProfile(data: ProfileUpdateData): Promise<ProfileUpdateResponse> {
-  // Validate input data
-  const validatedData = profileUpdateDataSchema.parse(data)
-
-  const response = await apiClient.put('/api/user/profile', validatedData)
-
-  // Validate response
-  return profileUpdateResponseSchema.parse(response.data)
-}
-
-/**
- * Parse and validate an API error from the API
+ * Parse and validate an API error into a consistent shape.
  */
 export function parseApiError(error: unknown): ApiError {
   if (typeof error === 'object' && error !== null) {
     try {
       return apiErrorSchema.parse(error)
     } catch {
-      // If parsing fails, return a default error structure
       return {
-        status: null,
-        message: 'An unexpected error occurred',
-        details: null,
+        status: (error as { status?: number }).status ?? null,
+        message: (error as { message?: string }).message || 'An unexpected error occurred',
+        details: (error as { details?: Record<string, string[]> }).details || null,
       }
     }
   }

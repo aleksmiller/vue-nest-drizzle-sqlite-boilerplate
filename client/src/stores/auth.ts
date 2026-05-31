@@ -1,112 +1,142 @@
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { useQuery, useMutation } from '@pinia/colada'
-import * as authApi from '../api/auth'
-import * as userApi from '../api/user'
+import { useApi } from '../api/http'
+import {
+  userProfileSchema,
+  type UserProfile,
+  type LoginCredentials,
+  type RegisterData,
+  type AuthResponse,
+  type AuthError,
+} from '../api/schemas'
 
+/** Build the normalized `{ status, message, details }` error shape from a response body. */
+function toAuthError(status: number | null, body: unknown): AuthError {
+  const b = (body ?? {}) as {
+    message?: string
+    error?: string
+    details?: Record<string, string[]>
+  }
+  return {
+    status,
+    message: b.message || b.error || 'An error occurred',
+    details: b.details || null,
+  }
+}
+
+/**
+ * Authentication store.
+ *
+ * The single source of truth is `user`: it is non-null exactly when the user
+ * is authenticated. `initialized` records whether we have checked the session
+ * with the server at least once, so guards can avoid redundant network calls.
+ */
 export const useAuthStore = defineStore('auth', () => {
-  // Use Pinia Colada query for checking authentication
-  // This automatically handles caching, deduplication, and loading states
-  const authQuery = useQuery({
-    key: ['auth', 'check'],
-    query: async () => {
-      try {
-        const profile = await userApi.getProfile()
-        return { profile, authenticated: true }
-      } catch (error) {
-        const apiError = error as { status?: number }
-        if (apiError.status === 401) {
-          return { profile: null, authenticated: false }
-        }
-        throw error
-      }
-    },
-    // Don't auto-refetch on mount, we'll call it manually when needed
-    enabled: false,
-  })
+  const user = ref<UserProfile | null>(null)
+  const initialized = ref(false)
+  const isCheckingAuth = ref(false)
 
-  // Computed state derived from the query
-  const user = computed(() => authQuery.data.value?.profile ?? null)
-  const session = computed(() => (authQuery.data.value?.authenticated ? { id: 'active' } : null))
-  const isAuthenticated = computed(() => authQuery.data.value?.authenticated ?? false)
-  const isCheckingAuth = computed(() => authQuery.asyncStatus.value === 'loading')
-
-  // Getters
-  const isLoggedIn = computed(() => isAuthenticated.value && user.value !== null)
-
-  // Register mutation
-  const registerMutation = useMutation({
-    mutation: async (data: authApi.RegisterData) => {
-      const response = await authApi.register(data)
-      // After successful registration, refresh auth state
-      await authQuery.refetch()
-      if (!isAuthenticated.value) {
-        throw new Error('Failed to authenticate after registration. Please try logging in.')
-      }
-      return response
-    },
-  })
-
-  // Login mutation
-  const loginMutation = useMutation({
-    mutation: async (credentials: authApi.LoginCredentials) => {
-      const response = await authApi.login(credentials)
-      // After successful login, refresh auth state
-      await authQuery.refetch()
-      if (!isAuthenticated.value) {
-        throw new Error('Failed to authenticate after login. Please try again.')
-      }
-      return response
-    },
-  })
-
-  // Logout mutation
-  const logoutMutation = useMutation({
-    mutation: async () => {
-      try {
-        await authApi.signOut()
-      } catch (error) {
-        // Continue with logout even if server call fails
-        console.error('Error during sign-out:', error)
-      }
-      // Always clear auth state
-      authQuery.data.value = { profile: null, authenticated: false }
-    },
-  })
+  const isAuthenticated = computed(() => user.value !== null)
+  const isLoggedIn = isAuthenticated
 
   /**
-   * Clear authentication state without calling the API
-   * Useful for handling 401 errors or forced logouts
+   * Verify the session against the server and refresh `user`.
+   * Returns whether the user is authenticated. A 401 clears the user;
+   * any other error propagates to the caller.
+   */
+  async function checkAuth(): Promise<boolean> {
+    isCheckingAuth.value = true
+    try {
+      // checkAuth resolves auth state itself; opt out of the global 401 redirect
+      // so a guest probe (e.g. on the login/register pages) isn't bounced away.
+      const { data, error, statusCode, execute } = useApi('/api/user/profile', {
+        immediate: false,
+        onFetchError: (ctx) => ctx,
+      }).json<unknown>()
+      await execute()
+
+      if (statusCode.value === 401) {
+        user.value = null
+        return false
+      }
+      if (error.value) {
+        throw error.value
+      }
+      user.value = userProfileSchema.parse(data.value)
+      return true
+    } finally {
+      initialized.value = true
+      isCheckingAuth.value = false
+    }
+  }
+
+  /**
+   * Clear authentication state locally, without calling the API.
+   * Used by the http layer when the server reports a 401.
    */
   function clearAuth() {
-    authQuery.data.value = { profile: null, authenticated: false }
+    user.value = null
+    initialized.value = true
   }
 
-  // Wrapper functions for backward compatibility
-  async function register(data: authApi.RegisterData) {
-    return registerMutation.mutate(data)
+  async function register(data: RegisterData): Promise<AuthResponse> {
+    const {
+      data: body,
+      error,
+      statusCode,
+      execute,
+    } = useApi('/api/auth/register', { immediate: false }).post(data).json<AuthResponse>()
+    await execute()
+
+    if (error.value || (statusCode.value ?? 0) >= 400) {
+      throw toAuthError(statusCode.value ?? null, body.value)
+    }
+
+    await checkAuth()
+    if (!isAuthenticated.value) {
+      throw new Error('Failed to authenticate after registration. Please try logging in.')
+    }
+    return body.value as AuthResponse
   }
 
-  async function login(credentials: authApi.LoginCredentials) {
-    return loginMutation.mutate(credentials)
+  async function login(credentials: LoginCredentials): Promise<AuthResponse> {
+    const {
+      data: body,
+      error,
+      statusCode,
+      execute,
+    } = useApi('/api/auth/login', { immediate: false }).post(credentials).json<AuthResponse>()
+    await execute()
+
+    if (error.value || (statusCode.value ?? 0) >= 400) {
+      throw toAuthError(statusCode.value ?? null, body.value)
+    }
+
+    await checkAuth()
+    if (!isAuthenticated.value) {
+      throw new Error('Failed to authenticate after login. Please try again.')
+    }
+    return body.value as AuthResponse
   }
 
   async function logout() {
-    return logoutMutation.mutate()
-  }
-
-  async function checkAuth() {
-    await authQuery.refetch()
-    return isAuthenticated.value
+    try {
+      const { execute } = useApi('/api/auth/sign-out', { immediate: false }).post().json()
+      await execute()
+    } catch (error) {
+      // Continue with logout even if the server call fails.
+      console.error('Error during sign-out:', error)
+    }
+    clearAuth()
   }
 
   return {
-    // State (computed from query)
+    // State
     user,
-    session,
-    isAuthenticated,
+    initialized,
     isCheckingAuth,
     // Getters
+    isAuthenticated,
     isLoggedIn,
     // Actions
     register,
@@ -114,10 +144,5 @@ export const useAuthStore = defineStore('auth', () => {
     logout,
     checkAuth,
     clearAuth,
-    // Expose mutations for advanced usage (e.g., accessing loading/error states)
-    registerMutation,
-    loginMutation,
-    logoutMutation,
-    authQuery,
   }
 })

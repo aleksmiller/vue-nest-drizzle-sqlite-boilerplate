@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { PiniaColada } from '@pinia/colada'
 import { createRouter, createWebHistory } from 'vue-router'
 import AuthForm from '../AuthForm.vue'
 import { useAuthStore } from '../../stores/auth'
@@ -26,7 +25,6 @@ describe('AuthForm', () => {
 
   beforeEach(async () => {
     const pinia = createPinia()
-    pinia.use(PiniaColada)
     setActivePinia(pinia)
 
     mockAuthStore = {

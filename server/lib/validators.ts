@@ -26,3 +26,7 @@ export const profileUpdateSchema = z
   .refine((data) => Object.values(data).some((value) => value !== undefined), {
     message: 'At least one field must be provided for update.', // Ensure at least one field is being updated
   });
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
+export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;

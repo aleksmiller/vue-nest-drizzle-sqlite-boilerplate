@@ -96,13 +96,25 @@ VITE_API_URL=https://your-api-domain.com
 
 ### 3. Database Setup
 
-The database file (`server/db/sqlite.db`) should already exist. If you need to generate migrations:
+The SQLite database file is **not** committed (it's gitignored), so a fresh clone
+has no database. Create it by applying the migrations:
 
 ```bash
 cd server
-npm run db:generate
 npm run db:migrate
 ```
+
+This creates `server/db/sqlite.db` with the `users`, `sessions`, and `user_profiles`
+tables. To change the schema later, edit `server/db/schema.ts`, then regenerate and
+re-apply:
+
+```bash
+npm run db:generate   # writes a new migration to db/migrations/
+npm run db:migrate
+```
+
+> In Docker, migrations are applied automatically on container start (see
+> `server/docker-entrypoint.sh`).
 
 To view the database:
 

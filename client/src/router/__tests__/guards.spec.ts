@@ -12,29 +12,30 @@ describe('router guards', () => {
   let mockNext: NavigationGuardNext
   let mockTo: RouteLocationNormalized
   let mockFrom: RouteLocationNormalized
-  let mockAuthStore: ReturnType<typeof useAuthStore>
+  let mockAuthStore: {
+    isAuthenticated: boolean
+    initialized: boolean
+    checkAuth: ReturnType<typeof vi.fn>
+  }
 
   beforeEach(() => {
     mockNext = vi.fn()
-    mockTo = {
-      fullPath: '/profile',
-      path: '/profile',
-    } as RouteLocationNormalized
-    mockFrom = {
-      path: '/',
-    } as RouteLocationNormalized
+    mockTo = { fullPath: '/profile', path: '/profile' } as RouteLocationNormalized
+    mockFrom = { path: '/' } as RouteLocationNormalized
 
     mockAuthStore = {
       isAuthenticated: false,
-      user: null,
-      checkAuth: vi.fn(),
-    } as unknown as ReturnType<typeof useAuthStore>
+      initialized: false,
+      checkAuth: vi.fn().mockResolvedValue(false),
+    }
 
-    vi.mocked(useAuthStore).mockReturnValue(mockAuthStore)
+    vi.mocked(useAuthStore).mockReturnValue(
+      mockAuthStore as unknown as ReturnType<typeof useAuthStore>,
+    )
   })
 
   describe('authGuard', () => {
-    it('should allow access when user is authenticated', async () => {
+    it('should allow access when already authenticated without re-checking', async () => {
       mockAuthStore.isAuthenticated = true
 
       await authGuard(mockTo, mockFrom, mockNext)
@@ -43,10 +44,8 @@ describe('router guards', () => {
       expect(mockAuthStore.checkAuth).not.toHaveBeenCalled()
     })
 
-    it('should check auth and allow access when checkAuth succeeds', async () => {
-      mockAuthStore.isAuthenticated = false
-      // Mock checkAuth to update isAuthenticated when called
-      vi.mocked(mockAuthStore.checkAuth).mockImplementation(async () => {
+    it('should check auth once when not initialized, then allow on success', async () => {
+      mockAuthStore.checkAuth.mockImplementation(async () => {
         mockAuthStore.isAuthenticated = true
         return true
       })
@@ -57,10 +56,7 @@ describe('router guards', () => {
       expect(mockNext).toHaveBeenCalledWith()
     })
 
-    it('should redirect to login when user is not authenticated', async () => {
-      mockAuthStore.isAuthenticated = false
-      vi.mocked(mockAuthStore.checkAuth).mockResolvedValue(false)
-
+    it('should redirect to login when not authenticated', async () => {
       await authGuard(mockTo, mockFrom, mockNext)
 
       expect(mockNext).toHaveBeenCalledWith({
@@ -69,10 +65,8 @@ describe('router guards', () => {
       })
     })
 
-    it('should preserve redirect query param', async () => {
+    it('should preserve the redirect query param', async () => {
       mockTo.fullPath = '/protected/route?param=value'
-      mockAuthStore.isAuthenticated = false
-      vi.mocked(mockAuthStore.checkAuth).mockResolvedValue(false)
 
       await authGuard(mockTo, mockFrom, mockNext)
 
@@ -81,10 +75,22 @@ describe('router guards', () => {
         query: { redirect: '/protected/route?param=value' },
       })
     })
+
+    it('should not re-check once initialized', async () => {
+      mockAuthStore.initialized = true
+
+      await authGuard(mockTo, mockFrom, mockNext)
+
+      expect(mockAuthStore.checkAuth).not.toHaveBeenCalled()
+      expect(mockNext).toHaveBeenCalledWith({
+        path: '/login',
+        query: { redirect: '/profile' },
+      })
+    })
   })
 
   describe('guestGuard', () => {
-    it('should redirect to home when user is already authenticated', async () => {
+    it('should redirect to home when already authenticated', async () => {
       mockAuthStore.isAuthenticated = true
 
       await guestGuard(mockTo, mockFrom, mockNext)
@@ -93,9 +99,8 @@ describe('router guards', () => {
       expect(mockAuthStore.checkAuth).not.toHaveBeenCalled()
     })
 
-    it('should allow access when user is definitely not authenticated', async () => {
-      mockAuthStore.isAuthenticated = false
-      mockAuthStore.user = null
+    it('should allow access when not authenticated and already initialized', async () => {
+      mockAuthStore.initialized = true
 
       await guestGuard(mockTo, mockFrom, mockNext)
 
@@ -103,17 +108,8 @@ describe('router guards', () => {
       expect(mockAuthStore.checkAuth).not.toHaveBeenCalled()
     })
 
-    it('should check auth and redirect if authenticated', async () => {
-      mockAuthStore.isAuthenticated = false
-      mockAuthStore.user = {
-        id: 'user-123',
-        username: 'test',
-        email: 'test@test.com',
-        createdAt: new Date(),
-        profile: null,
-      } // Uncertain state (not null, but not authenticated)
-      // Mock checkAuth to update isAuthenticated when called
-      vi.mocked(mockAuthStore.checkAuth).mockImplementation(async () => {
+    it('should check auth when uninitialized and redirect if authenticated', async () => {
+      mockAuthStore.checkAuth.mockImplementation(async () => {
         mockAuthStore.isAuthenticated = true
         return true
       })
@@ -124,16 +120,8 @@ describe('router guards', () => {
       expect(mockNext).toHaveBeenCalledWith({ path: '/' })
     })
 
-    it('should allow access if checkAuth fails', async () => {
-      mockAuthStore.isAuthenticated = false
-      mockAuthStore.user = {
-        id: 'user-123',
-        username: 'test',
-        email: 'test@test.com',
-        createdAt: new Date(),
-        profile: null,
-      } // Uncertain state
-      vi.mocked(mockAuthStore.checkAuth).mockRejectedValue(new Error('401'))
+    it('should allow access if the auth check fails', async () => {
+      mockAuthStore.checkAuth.mockRejectedValue(new Error('401'))
 
       await guestGuard(mockTo, mockFrom, mockNext)
 
@@ -141,17 +129,7 @@ describe('router guards', () => {
       expect(mockNext).toHaveBeenCalledWith()
     })
 
-    it('should allow access if checkAuth returns false', async () => {
-      mockAuthStore.isAuthenticated = false
-      mockAuthStore.user = {
-        id: 'user-123',
-        username: 'test',
-        email: 'test@test.com',
-        createdAt: new Date(),
-        profile: null,
-      } // Uncertain state
-      vi.mocked(mockAuthStore.checkAuth).mockResolvedValue(false)
-
+    it('should allow access if the auth check returns false', async () => {
       await guestGuard(mockTo, mockFrom, mockNext)
 
       expect(mockAuthStore.checkAuth).toHaveBeenCalled()

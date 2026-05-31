@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { PiniaColada } from '@pinia/colada'
 import UserProfile from '../UserProfile.vue'
 import { useAuthStore } from '../../stores/auth'
 import { useUserStore } from '../../stores/user'
@@ -47,7 +46,6 @@ describe('UserProfile', () => {
 
   beforeEach(() => {
     const pinia = createPinia()
-    pinia.use(PiniaColada as unknown as Parameters<typeof pinia.use>[0])
     setActivePinia(pinia)
 
     mockAuthStore = {

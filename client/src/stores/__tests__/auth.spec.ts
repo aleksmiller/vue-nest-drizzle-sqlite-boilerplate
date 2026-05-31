@@ -1,26 +1,47 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { ref } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
-import { PiniaColada } from '@pinia/colada'
 import { useAuthStore } from '../auth'
-import * as userApi from '../../api/user'
+import { useApi } from '../../api/http'
 
-// Mock API modules
-vi.mock('../../api/auth', () => ({
-  register: vi.fn(),
-  login: vi.fn(),
-  signOut: vi.fn(),
-  parseAuthError: vi.fn(),
-}))
+// Mock the fetch instance
+vi.mock('../../api/http', () => ({ useApi: vi.fn() }))
 
-vi.mock('../../api/user', () => ({
-  getProfile: vi.fn(),
-}))
+/** Build a fake chainable useFetch return value backed by real refs. */
+function fetchResult({
+  data = null,
+  statusCode = 200,
+  error = null,
+}: {
+  data?: unknown
+  statusCode?: number | null
+  error?: unknown
+} = {}) {
+  const obj = {
+    data: ref(data),
+    error: ref(error),
+    statusCode: ref(statusCode),
+    isFetching: ref(false),
+    execute: vi.fn().mockResolvedValue(undefined),
+  } as Record<string, unknown>
+  obj.json = () => obj
+  obj.post = () => obj
+  obj.put = () => obj
+  obj.get = () => obj
+  return obj
+}
+
+const mockProfile = {
+  id: 'user-123',
+  username: 'testuser',
+  email: 'test@example.com',
+  createdAt: new Date(),
+  profile: null,
+}
 
 describe('useAuthStore', () => {
   beforeEach(() => {
-    const pinia = createPinia()
-    pinia.use(PiniaColada)
-    setActivePinia(pinia)
+    setActivePinia(createPinia())
     vi.clearAllMocks()
   })
 
@@ -30,26 +51,20 @@ describe('useAuthStore', () => {
       expect(store.user).toBeNull()
       expect(store.isAuthenticated).toBe(false)
       expect(store.isLoggedIn).toBe(false)
-      expect(store.session).toBeNull()
     })
 
     it('should not be checking auth initially', () => {
       const store = useAuthStore()
       expect(store.isCheckingAuth).toBe(false)
+      expect(store.initialized).toBe(false)
     })
   })
 
   describe('checkAuth', () => {
     it('should set authenticated state when profile fetch succeeds', async () => {
-      const mockProfile = {
-        id: 'user-123',
-        username: 'testuser',
-        email: 'test@example.com',
-        createdAt: new Date(),
-        profile: null,
-      }
-
-      vi.mocked(userApi.getProfile).mockResolvedValue(mockProfile)
+      vi.mocked(useApi).mockReturnValue(
+        fetchResult({ data: mockProfile, statusCode: 200 }) as unknown as ReturnType<typeof useApi>,
+      )
 
       const store = useAuthStore()
       const result = await store.checkAuth()
@@ -58,12 +73,15 @@ describe('useAuthStore', () => {
       expect(store.isAuthenticated).toBe(true)
       expect(store.user).toEqual(mockProfile)
       expect(store.isLoggedIn).toBe(true)
-      expect(store.session).toEqual({ id: 'active' })
+      expect(store.initialized).toBe(true)
     })
 
     it('should set unauthenticated state when profile fetch returns 401', async () => {
-      const error = { status: 401 }
-      vi.mocked(userApi.getProfile).mockRejectedValue(error)
+      vi.mocked(useApi).mockReturnValue(
+        fetchResult({ statusCode: 401, error: new Error('Unauthorized') }) as unknown as ReturnType<
+          typeof useApi
+        >,
+      )
 
       const store = useAuthStore()
       const result = await store.checkAuth()
@@ -77,15 +95,9 @@ describe('useAuthStore', () => {
 
   describe('isLoggedIn', () => {
     it('should return true when authenticated and user exists', async () => {
-      const mockProfile = {
-        id: 'user-123',
-        username: 'testuser',
-        email: 'test@example.com',
-        createdAt: new Date(),
-        profile: null,
-      }
-
-      vi.mocked(userApi.getProfile).mockResolvedValue(mockProfile)
+      vi.mocked(useApi).mockReturnValue(
+        fetchResult({ data: mockProfile, statusCode: 200 }) as unknown as ReturnType<typeof useApi>,
+      )
 
       const store = useAuthStore()
       await store.checkAuth()
@@ -96,20 +108,6 @@ describe('useAuthStore', () => {
     it('should return false when not authenticated', () => {
       const store = useAuthStore()
       expect(store.isLoggedIn).toBe(false)
-    })
-
-    it('should return false when authenticated but user is null', () => {
-      // This tests the computed logic: isLoggedIn requires both authenticated AND user
-      const store = useAuthStore()
-
-      // Simulate edge case where authenticated is true but user is null
-      // This shouldn't happen in practice, but we test the computed logic
-      // Since we can't directly set the query data in tests, we test the logic differently
-      // by checking that isLoggedIn requires both conditions
-      expect(store.isLoggedIn).toBe(false) // Initially false because not authenticated
-
-      // The actual logic: isLoggedIn = isAuthenticated && user !== null
-      // So if authenticated is false OR user is null, isLoggedIn is false
     })
   })
 })

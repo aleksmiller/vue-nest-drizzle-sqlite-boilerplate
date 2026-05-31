@@ -6,16 +6,18 @@ import {
   Req,
   HttpCode,
   HttpStatus,
-  BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
-import { registerSchema, loginSchema } from '../../lib/validators';
-import { ZodError } from 'zod';
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
+import {
+  registerSchema,
+  loginSchema,
+  type RegisterInput,
+  type LoginInput,
+} from '../../lib/validators';
 import { lucia } from '../../lib/lucia';
 
 /**
@@ -34,33 +36,24 @@ export class AuthController {
   @Post('register')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.CREATED)
-  async register(@Body() body: unknown, @Res() res: Response) {
-    try {
-      const parsedBody = registerSchema.parse(body);
-      const registerDto = RegisterDto.fromZod(parsedBody);
-      const result = await this.authService.register(registerDto);
+  async register(
+    @Body(new ZodValidationPipe(registerSchema)) body: RegisterInput,
+    @Res() res: Response,
+  ) {
+    const result = await this.authService.register(body);
 
-      // Set session cookie
-      const sessionCookie = lucia.createSessionCookie(result.sessionId);
-      res.cookie(
-        sessionCookie.name,
-        sessionCookie.value,
-        sessionCookie.attributes,
-      );
+    // Set session cookie
+    const sessionCookie = lucia.createSessionCookie(result.sessionId);
+    res.cookie(
+      sessionCookie.name,
+      sessionCookie.value,
+      sessionCookie.attributes,
+    );
 
-      return res.json({
-        message: result.message,
-        userId: result.userId,
-      });
-    } catch (error) {
-      if (error instanceof ZodError) {
-        throw new BadRequestException({
-          error: 'Invalid input',
-          details: error.flatten().fieldErrors,
-        });
-      }
-      throw error;
-    }
+    return res.json({
+      message: result.message,
+      userId: result.userId,
+    });
   }
 
   /**
@@ -72,33 +65,24 @@ export class AuthController {
   @Post('login')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
-  async login(@Body() body: unknown, @Res() res: Response) {
-    try {
-      const parsedBody = loginSchema.parse(body);
-      const loginDto = LoginDto.fromZod(parsedBody);
-      const result = await this.authService.login(loginDto);
+  async login(
+    @Body(new ZodValidationPipe(loginSchema)) body: LoginInput,
+    @Res() res: Response,
+  ) {
+    const result = await this.authService.login(body);
 
-      // Set session cookie
-      const sessionCookie = lucia.createSessionCookie(result.sessionId);
-      res.cookie(
-        sessionCookie.name,
-        sessionCookie.value,
-        sessionCookie.attributes,
-      );
+    // Set session cookie
+    const sessionCookie = lucia.createSessionCookie(result.sessionId);
+    res.cookie(
+      sessionCookie.name,
+      sessionCookie.value,
+      sessionCookie.attributes,
+    );
 
-      return res.json({
-        message: result.message,
-        userId: result.userId,
-      });
-    } catch (error) {
-      if (error instanceof ZodError) {
-        throw new BadRequestException({
-          error: 'Invalid input',
-          details: error.flatten().fieldErrors,
-        });
-      }
-      throw error;
-    }
+    return res.json({
+      message: result.message,
+      userId: result.userId,
+    });
   }
 
   /**

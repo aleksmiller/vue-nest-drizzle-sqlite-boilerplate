@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { db } from '../../db/drizzle';
 import { userProfilesTable, usersTable } from '../../db/schema';
 import { eq } from 'drizzle-orm';
-import { ProfileUpdateDto } from './dto/profile-update.dto';
+import type { ProfileUpdateInput } from '../../lib/validators';
 
 @Injectable()
 export class UserService {
@@ -46,17 +46,17 @@ export class UserService {
    * @param profileUpdateDto - Profile update data
    * @returns Updated profile data
    */
-  async updateProfile(userId: string, profileUpdateDto: ProfileUpdateDto) {
+  async updateProfile(userId: string, profileUpdate: ProfileUpdateInput) {
     const dataToUpdate: Partial<typeof userProfilesTable.$inferInsert> = {};
 
-    if (profileUpdateDto.firstName !== undefined) {
-      dataToUpdate.firstName = profileUpdateDto.firstName;
+    if (profileUpdate.firstName !== undefined) {
+      dataToUpdate.firstName = profileUpdate.firstName;
     }
-    if (profileUpdateDto.lastName !== undefined) {
-      dataToUpdate.lastName = profileUpdateDto.lastName;
+    if (profileUpdate.lastName !== undefined) {
+      dataToUpdate.lastName = profileUpdate.lastName;
     }
-    if (profileUpdateDto.bio !== undefined) {
-      dataToUpdate.bio = profileUpdateDto.bio;
+    if (profileUpdate.bio !== undefined) {
+      dataToUpdate.bio = profileUpdate.bio;
     }
 
     if (Object.keys(dataToUpdate).length === 0) {
